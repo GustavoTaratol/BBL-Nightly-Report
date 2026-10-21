@@ -1,0 +1,13 @@
+services:
+  bbl-report:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      BBL_DATA_DIR: /data
+      BBL_OUTPUT_DIR: /data/reports
+      BBL_ROSTERS_FILE: /data/rosters/current.txt
+    volumes:
+      - ./data:/data
+    shm_size: "1gb"

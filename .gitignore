@@ -1,0 +1,11 @@
+.venv/
+output/
+rosters/bbl_rosters.txt
+__pycache__/
+.DS_Store
+
+# Automation runtime data and secrets
+.runtime/
+data/
+secrets/
+.env
