@@ -161,12 +161,12 @@ def build(end_date: str, data: Path, output: Path) -> int:
     )
     md = [f"# BBL Weekly Analyst Report · {label}", "", f"**Manager of the Week:** {manager} — {manager_score} BBL pts", f"**Stinker of the Week:** {stinker} — {stinker_score} BBL pts", "", narrative, ""]
     md += weekly_story(daily, players, managers, top, low, manager, stinker)
-    md += ["## Weekly Top Performers", "", "| # | Player | Manager | Games | BBL pts | Peak night |", "|---:|---|---|---:|---:|---:|"]
+    md += ["## Weekly Top Performers", ""]
     for i, (name, item) in enumerate(top, 1):
-        md.append(f"| {i} | {name} | {owner_label(item)} | {item['games']} | {item['fp']} | {item['peak']} |")
-    md += ["", "## Weekly Strugglers", "", "Players shown here played at least 2 games and 40 minutes.", "", "| # | Player | Manager | Games | Avg BBL pts | Total |", "|---:|---|---|---:|---:|---:|"]
+        md.append(f"{i}. {name} — {owner_label(item)} · {item['games']} games · {item['fp']} BBL pts · peak {item['peak']}")
+    md += ["", "## Weekly Strugglers", "", "Players shown here played at least 2 games and 40 minutes.", ""]
     for i, (name, item) in enumerate(low[:10], 1):
-        md.append(f"| {i} | {name} | {owner_label(item)} | {item['games']} | {item['fp'] / item['games']:.1f} | {item['fp']} |")
+        md.append(f"{i}. {name} — {owner_label(item)} · {item['games']} games · {item['fp'] / item['games']:.1f} avg · {item['fp']} total BBL pts")
     md += ["", "## Analyst Notes", "", f"Best single-night peak: {short_day(best_night[0])}. Lowest individual outing: {short_day(worst_night[0])}.", "", "Roster ownership is assigned from the snapshot used for each night, so trades and waivers are reflected when snapshots are available."]
     (out / "Weekly Analyst Report.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     # Keep the weekly product deliberately text-first: it is meant to be
