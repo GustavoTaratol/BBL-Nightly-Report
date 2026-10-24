@@ -63,14 +63,10 @@ def weekly(args, draft: bool) -> None:
 
 
 def status(_args) -> None:
-    completed = sorted((DATA / "completed").glob("*.ok")) if (DATA / "completed").exists() else []
-    snapshots = sorted((DATA / "rosters" / "snapshots").glob("*.txt")) if (DATA / "rosters" / "snapshots").exists() else []
-    history = DATA / "transactions" / "history.jsonl"
-    print(f"BBL Report Agent")
+    from health import print_health
+    print("BBL Report Agent health")
     print(f"data: {DATA}")
-    print(f"completed nightly reports: {len(completed)}")
-    print(f"roster snapshots: {len(snapshots)}")
-    print(f"transaction history: {history if history.exists() else 'not created yet'}")
+    print_health(DATA)
 
 
 def main() -> int:

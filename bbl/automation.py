@@ -12,6 +12,9 @@ import sys
 import time
 from pathlib import Path
 
+from backup import backup_state
+from quality import validate_box, validate_roster
+
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(os.environ.get("BBL_DATA_DIR", ROOT / "data")).resolve()
@@ -78,6 +81,7 @@ def run_once(date: str, poll_minutes: int, skip_rosters: bool, no_publish: bool)
                 raise
     if not ROSTERS.exists():
         raise RuntimeError(f"No roster snapshot exists at {ROSTERS}")
+    validate_roster(ROSTERS)
     snapshot_rosters(date)
 
     while True:
@@ -90,6 +94,12 @@ def run_once(date: str, poll_minutes: int, skip_rosters: bool, no_publish: bool)
             break
         time.sleep(max(1, poll_minutes) * 60)
 
+    validate_box(box)
+    lineup_dir = DATA / "lineups"
+    lineup_dir.mkdir(parents=True, exist_ok=True)
+    run([PYTHON, str(ROOT / "bbl/lineup_analysis.py"), str(box), str(ROSTERS),
+         str(lineup_dir / f"{date}.json")])
+
     report_dir = generate(date)
     caption = report_dir / "caption.txt"
     caption.write_text(f"BBL Nightly Report · {date}\nTop 10 Performances and Top 10 Worst Performances attached.", encoding="utf-8")
@@ -99,6 +109,7 @@ def run_once(date: str, poll_minutes: int, skip_rosters: bool, no_publish: bool)
         run([PYTHON, str(ROOT / "bbl/publish.py"), str(report_dir)])
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text(dt.datetime.now(dt.timezone.utc).isoformat() + "\n", encoding="utf-8")
+    backup_state(DATA)
     print(f"Completed report: {report_dir}")
     if dt.datetime.strptime(date, "%Y%m%d").weekday() == 6:
         start = dt.datetime.strptime(date, "%Y%m%d").date() - dt.timedelta(days=6)

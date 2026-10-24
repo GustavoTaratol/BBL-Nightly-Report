@@ -121,6 +121,9 @@ python3 bbl/agent.py status
 
 It writes a persistent activity log to `data/logs/agent.log`. The scheduled
 jobs should invoke these agent commands instead of duplicating report logic.
+The agent validates inputs before publishing, creates recoverable backups,
+retries webhook delivery, records lineup analysis under `data/lineups/`, and
+exposes health information through `python3 bbl/agent.py status`.
 
 After the Sunday nightly report completes, the scheduler builds a Monday–Sunday
 weekly analyst report. It includes Manager/Stinker of the Week, weekly top

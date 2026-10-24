@@ -78,6 +78,22 @@ def period_transactions(data: Path, start, end):
     return events
 
 
+def period_lineups(data: Path, start, end):
+    results = []
+    lineup_dir = data / "lineups"
+    if not lineup_dir.exists():
+        return results
+    for path in sorted(lineup_dir.glob("*.json")):
+        try:
+            day = dt.datetime.strptime(path.stem, "%Y%m%d").date()
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (ValueError, json.JSONDecodeError):
+            continue
+        if start <= day <= end:
+            results.append((path.stem, payload))
+    return results
+
+
 def weekly_story(daily, players, managers, top, low, manager, stinker):
     """Write a text-first, sports-column narrative from the available box scores."""
     appearances = [(key, p) for key, best, _totals, _status in daily for p in best]
@@ -153,6 +169,7 @@ def weekly_story(daily, players, managers, top, low, manager, stinker):
 def build(end_date: str, data: Path, output: Path) -> int:
     start, end, daily, players, managers, missing = collect(end_date, data)
     transactions = period_transactions(data, start, end)
+    lineups = period_lineups(data, start, end)
     if missing:
         print("Weekly report waiting for: " + ", ".join(missing), file=sys.stderr)
         return 2
@@ -194,6 +211,24 @@ def build(end_date: str, data: Path, output: Path) -> int:
             md.append(f"- {line}")
     else:
         md.append("No roster changes were captured for this period. Future nightly snapshots will allow the report to identify pickup, drop, and trade candidates automatically.")
+    md.append("")
+    md += ["## Lineup & Coaching Notes", ""]
+    if lineups:
+        candidates = []
+        for day, payload in lineups:
+            for owner, item in payload.get("managers", {}).items():
+                unused = item.get("best_unused")
+                started = item.get("worst_started")
+                if unused and started:
+                    candidates.append((unused["fp"] - started["fp"], day, owner, unused, started))
+        candidates.sort(reverse=True)
+        if candidates:
+            for _gap, day, owner, unused, started in candidates[:5]:
+                md.append(f"- {short_day(day)}: {owner} left {unused['name']} ({unused['fp']} BBL pts) on the reserve while starting {started['name']} ({started['fp']} BBL pts).")
+        else:
+            md.append("No active-versus-reserve lineup candidates were available for this period.")
+    else:
+        md.append("Lineup analysis will appear once nightly active/reserve snapshots are available.")
     md.append("")
     md += ["## Weekly Top Performers", ""]
     for i, (name, item) in enumerate(top, 1):

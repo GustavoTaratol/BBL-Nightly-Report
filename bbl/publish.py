@@ -11,8 +11,24 @@ import json
 import mimetypes
 import os
 import sys
+import time
 import urllib.request
 from pathlib import Path
+
+
+def retry_post(request: urllib.request.Request, attempts: int = 3) -> None:
+    last = None
+    for attempt in range(attempts):
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                if response.status >= 300:
+                    raise RuntimeError(f"webhook returned HTTP {response.status}")
+                return
+        except Exception as exc:
+            last = exc
+            if attempt + 1 < attempts:
+                time.sleep(2 ** attempt)
+    raise RuntimeError(f"delivery failed after {attempts} attempts: {last}")
 
 
 def post_discord(url: str, report_dir: Path, caption: str) -> None:
@@ -42,9 +58,7 @@ def post_discord(url: str, report_dir: Path, caption: str) -> None:
         headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        if response.status >= 300:
-            raise RuntimeError(f"Discord webhook returned HTTP {response.status}")
+    retry_post(request)
 
 
 def post_generic(url: str, report_dir: Path, caption: str) -> None:
@@ -63,9 +77,7 @@ def post_generic(url: str, report_dir: Path, caption: str) -> None:
     request = urllib.request.Request(url, data=payload,
                                      headers={"Content-Type": "application/json"},
                                      method="POST")
-    with urllib.request.urlopen(request, timeout=30) as response:
-        if response.status >= 300:
-            raise RuntimeError(f"Generic webhook returned HTTP {response.status}")
+    retry_post(request)
 
 
 def publish(report_dir: Path) -> None:

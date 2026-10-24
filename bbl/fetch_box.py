@@ -46,10 +46,14 @@ def rows_from_summary(g):
             ftm, fta = split(v.get("freeThrowsMade-freeThrowsAttempted"))
             pos = ((a.get("athlete") or {}).get("position") or {}).get("abbreviation", "")
             headshot = ((a.get("athlete") or {}).get("headshot") or {}).get("href", "")
-            out.append("|".join(str(x) for x in [
+            fields = [
                 a["athlete"]["displayName"], ab, v.get("minutes", "0"), v.get("points", "0"),
                 fgm, fga, tpm, tpa, ftm, fta, v.get("rebounds", "0"), v.get("assists", "0"),
-                v.get("turnovers", "0"), v.get("steals", "0"), v.get("blocks", "0"), v.get("fouls", "0"), pos, headshot]))
+                v.get("turnovers", "0"), v.get("steals", "0"), v.get("blocks", "0"), v.get("fouls", "0"), pos,
+            ]
+            if headshot:
+                fields.append(headshot)
+            out.append("|".join(str(x) for x in fields))
     return out
 
 
