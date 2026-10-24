@@ -60,7 +60,13 @@ def run_once(date: str, poll_minutes: int, skip_rosters: bool, no_publish: bool)
         print(f"{date}: already completed; skipping")
         return
     if not skip_rosters:
-        refresh_rosters()
+        try:
+            refresh_rosters()
+        except Exception as exc:
+            if ROSTERS.exists() and ROSTERS.stat().st_size > 100:
+                print(f"CBS roster refresh unavailable; using last saved roster snapshot ({exc})", flush=True)
+            else:
+                raise
     if not ROSTERS.exists():
         raise RuntimeError(f"No roster snapshot exists at {ROSTERS}")
 

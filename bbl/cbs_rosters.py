@@ -23,6 +23,7 @@ import tempfile
 import time
 from pathlib import Path
 
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
@@ -97,7 +98,12 @@ def collect(base_url: str, profile: Path, out: Path, headed: bool) -> int:
             )
         page = context.pages[0] if context.pages else context.new_page()
         try:
-            page.goto(base_url + "/standings/overall", wait_until="domcontentloaded", timeout=45_000)
+            try:
+                page.goto(base_url + "/standings/overall", wait_until="domcontentloaded", timeout=45_000)
+            except PlaywrightError:
+                # CBS may redirect through its login service and abort the
+                # original navigation while the final page is still usable.
+                pass
             page.wait_for_timeout(1_000)
 
             teams = {}
@@ -110,7 +116,10 @@ def collect(base_url: str, profile: Path, out: Path, headed: bool) -> int:
             if not teams and headed:
                 print("CBS login required in the browser window. Complete login, then press Enter here.", flush=True)
                 input()
-                page.goto(base_url + "/standings/overall", wait_until="domcontentloaded", timeout=45_000)
+                try:
+                    page.goto(base_url + "/standings/overall", wait_until="domcontentloaded", timeout=45_000)
+                except PlaywrightError:
+                    pass
                 page.wait_for_timeout(1_000)
                 for link in page.locator('a[href*="/teams/"]').all():
                     href = link.get_attribute("href") or ""
