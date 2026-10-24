@@ -64,7 +64,8 @@ def load(box_path, roster_path):
 def card_html(title, accent, subtitle, award_label, award_name, award_summary, rows, mentions, worst=False):
     rows_html = "".join(
         f'<div class="row"><div class="rank">{i}</div><div class="who"><b>{html.escape(p["n"])}</b>'
-        f'<span class="team">{html.escape(p["t"])}</span><small>{html.escape(p["owner"])}</small></div>'
+        f'<span class="team">{html.escape(p["t"])}</span><small>{html.escape(p["owner"])}</small>'
+        f'<em class="meta">{html.escape(p["slot"] or "—")} slot · base {p["base"]} · {p["m"]} min</em></div>'
         f'<div class="score">{fpt(p["fp"])}<small>BBL PTS</small></div>'
         f'<div class="stat">{p["fgm"]}–{p["fga"]}<small>FG</small></div>'
         f'<div class="stat">{p["reb"]}<small>REB</small></div><div class="stat">{p["ast"]}<small>AST</small></div></div>'
@@ -83,7 +84,7 @@ h1{{font-size:62px;line-height:.95;margin:0;color:#f4f7fb;letter-spacing:-2px;te
 .label{{font-size:17px;letter-spacing:4px;color:{accent};font-weight:700;text-transform:uppercase}}.award h2{{font-size:42px;margin:8px 0 3px}}.award p{{font-size:23px;margin:0;color:#b9c7d9}}
 .cols,.row{{display:grid;grid-template-columns:54px 1fr 150px 100px 90px 90px;gap:12px;align-items:center}}.cols{{padding:0 14px 8px;color:#91a2b9;font-size:15px;letter-spacing:2px;text-transform:uppercase}}
 .row{{background:#122139;border:1px solid #203653;border-radius:12px;padding:11px 14px;margin:8px 0}}.rank{{font-size:26px;color:{accent};font-weight:700;text-align:center}}
-.who b{{display:block;font-size:25px}}.who .team{{display:inline-block;color:#08111f;background:{accent};border-radius:4px;padding:2px 6px;font-size:13px;font-weight:700;margin-top:5px}}.who small{{display:block;color:#9caec3;font-size:16px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+.who b{{display:block;font-size:25px}}.who .team{{display:inline-block;color:#08111f;background:{accent};border-radius:4px;padding:2px 6px;font-size:13px;font-weight:700;margin-top:5px}}.who small{{display:block;color:#9caec3;font-size:16px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}.who .meta{{display:block;color:#71839b;font-size:12px;font-style:normal;margin-top:4px;letter-spacing:.4px}}
 .score{{color:{accent};font-size:42px;font-weight:800;text-align:center}}.score small,.stat small{{display:block;font-size:11px;color:#9caec3;letter-spacing:1px}}.stat{{background:#172a45;border-radius:7px;text-align:center;padding:8px 3px;font-size:21px;font-weight:700}}
 .section{{border:1px solid #1f4763;border-radius:14px;margin-top:24px;padding:15px}}.section h3{{color:#28d0ed;letter-spacing:3px;margin:0 0 10px;font-size:21px}}.mention{{display:grid;grid-template-columns:44px 1fr 70px;align-items:center;border-top:1px solid #203653;padding:9px 4px;color:#a8b7c9;font-size:17px}}.mention b{{color:#667991}}.mention i{{font-style:normal;color:#71839b}}.mention strong{{color:{accent};text-align:right;font-size:22px}}
 footer{{margin-top:22px;text-align:center;color:#687b93;font-size:13px;letter-spacing:1px}}

@@ -69,7 +69,6 @@ data/
     alt-text.txt
   reports/week-YYYYMMDD-YYYYMMDD/
     Weekly Analyst Report.md
-    Weekly Analyst Report.png
   browser/cbs-profile/
   logs/
 ```

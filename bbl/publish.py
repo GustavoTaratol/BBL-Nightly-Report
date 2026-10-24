@@ -16,8 +16,8 @@ from pathlib import Path
 
 
 def post_discord(url: str, report_dir: Path, caption: str) -> None:
-    weekly = report_dir / "Weekly Analyst Report.png"
-    images = [weekly] if weekly.exists() else [
+    is_weekly = (report_dir / "Weekly Analyst Report.md").exists()
+    images = [] if is_weekly else [
         report_dir / "Top 10 Performances.png",
         report_dir / "Top 10 Worst Performances.png",
     ]

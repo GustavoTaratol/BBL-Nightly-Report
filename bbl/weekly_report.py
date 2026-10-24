@@ -4,10 +4,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
-import html
-import subprocess
 import sys
-import tempfile
 from collections import defaultdict
 from pathlib import Path
 
@@ -98,15 +95,9 @@ def build(end_date: str, data: Path, output: Path) -> int:
         md.append(f"| {i} | {name} | {owner_label(item)} | {item['games']} | {item['fp'] / item['games']:.1f} | {item['fp']} |")
     md += ["", "## Analyst Notes", "", f"Best single-night peak: {short_day(best_night[0])}. Lowest individual outing: {short_day(worst_night[0])}.", "", "Roster ownership is assigned from the snapshot used for each night, so trades and waivers are reflected when snapshots are available."]
     (out / "Weekly Analyst Report.md").write_text("\n".join(md) + "\n", encoding="utf-8")
-    caption = f"BBL Weekly Analyst Report · {label}\nManager of the Week: {manager}\nStinker of the Week: {stinker}"
-    (out / "caption.txt").write_text(caption, encoding="utf-8")
-    html_rows = "".join(f"<tr><td>{i}</td><td>{html.escape(n)}</td><td>{html.escape(owner_label(x))}</td><td>{x['games']}</td><td>{x['fp']}</td><td>{x['peak']}</td></tr>" for i, (n, x) in enumerate(top, 1))
-    low_rows = "".join(f"<tr><td>{i}</td><td>{html.escape(n)}</td><td>{html.escape(owner_label(x))}</td><td>{x['games']}</td><td>{x['fp'] / x['games']:.1f}</td><td>{x['fp']}</td></tr>" for i, (n, x) in enumerate(low[:10], 1))
-    page = f'''<!doctype html><html><head><meta charset="utf-8"><style>
-body{{margin:0;background:#08111f;color:#e7edf7;font-family:Arial,sans-serif}}#card{{width:1080px;padding:42px 38px 32px;background:#0d1728}}h1{{font-size:52px;margin:0;color:#f5f7fb}}.sub{{color:#25c9ed;letter-spacing:5px;font-size:20px;margin:12px 0 24px}}.award{{border:2px solid #ff972f;border-radius:14px;padding:18px 24px;margin-bottom:18px}}.award b{{color:#ff972f;letter-spacing:3px}}.award strong{{display:block;font-size:34px;margin-top:7px}}.copy{{font-size:19px;line-height:1.45;color:#b9c7d9;margin:20px 0}}h2{{color:#28d0ed;letter-spacing:3px;font-size:22px;margin:25px 0 8px}}table{{width:100%;border-collapse:collapse}}th,td{{padding:9px 10px;border-bottom:1px solid #203653;text-align:left}}th{{color:#91a2b9;text-transform:uppercase;letter-spacing:1px;font-size:13px}}td:first-child{{color:#ff972f;font-weight:700}}.low td:first-child{{color:#c879ff}}footer{{margin-top:22px;color:#71839b;text-align:center;font-size:13px}}</style></head><body><div id="card"><h1>BBL WEEKLY ANALYST REPORT</h1><div class="sub">{html.escape(label.upper())}</div><div class="award"><b>MANAGER OF THE WEEK</b><strong>{html.escape(manager)} · {manager_score} BBL PTS</strong><span>{html.escape(narrative)}</span></div><h2>WEEKLY TOP PERFORMERS</h2><table><tr><th>#</th><th>Player</th><th>Manager</th><th>Games</th><th>Total</th><th>Peak</th></tr>{html_rows}</table><h2>WEEKLY STRUGGLERS</h2><table class="low"><tr><th>#</th><th>Player</th><th>Manager</th><th>Games</th><th>Avg</th><th>Total</th></tr>{low_rows}</table><footer>BBL weekly totals · ownership follows each night's roster snapshot</footer></div></body></html>'''
-    with tempfile.TemporaryDirectory() as temp:
-        source = Path(temp) / "weekly.html"; source.write_text(page, encoding="utf-8")
-        subprocess.run([sys.executable, str(ROOT / "bbl/render.py"), str(source), str(out / "Weekly Analyst Report.png"), "#card", "1080", "1"], check=True)
+    # Keep the weekly product deliberately text-first: it is meant to be
+    # pasted into the league chat, not consumed as another image card.
+    (out / "caption.txt").write_text("\n".join(md) + "\n", encoding="utf-8")
     print(f"Weekly report: {out}")
     return 0
 
