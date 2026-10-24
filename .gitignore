@@ -9,3 +9,6 @@ __pycache__/
 data/
 secrets/
 .env
+
+# Local macOS launchd configuration
+com.bbl.nightly-report.local.plist

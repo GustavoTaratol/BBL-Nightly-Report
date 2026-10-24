@@ -170,6 +170,8 @@ def main():
     for src, name, sel, w, sc in jobs:
         r = subprocess.run([PY, os.path.join(BBL, "render.py"), src, os.path.join(out, name), sel, w, sc])
         bad += r.returncode != 0
+    social = subprocess.run([PY, os.path.join(BBL, "social_cards.py"), box, ROSTERS, out, label])
+    bad += social.returncode != 0
     if bad:
         say("⚠️  Some images couldn't be drawn. Run '1 - Setup' again, then retry.")
     for f in ("box.txt", "nightly.html", "nightly_share.html", "nightly_share.txt", "nightly_share_subject.txt", "nightly_top10.html", "nightly_web.html"):

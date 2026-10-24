@@ -46,8 +46,12 @@ def fetch_status(date: str) -> tuple[int, int, int]:
 
 
 def generate(date: str) -> Path:
-    run([PYTHON, str(ROOT / "bbl/run.py"), date, "--no-open"])
-    return Path(os.environ.get("BBL_OUTPUT_DIR", DATA / "reports")) / date
+    box = DATA / "boxscores" / f"{date}.txt"
+    report_dir = Path(os.environ.get("BBL_OUTPUT_DIR", DATA / "reports")) / date
+    label = dt.datetime.strptime(date, "%Y%m%d").strftime("%a %b %-d")
+    run([PYTHON, str(ROOT / "bbl/social_cards.py"), str(box), str(ROSTERS),
+         str(report_dir), label])
+    return report_dir
 
 
 def run_once(date: str, poll_minutes: int, skip_rosters: bool, no_publish: bool) -> None:
@@ -72,13 +76,9 @@ def run_once(date: str, poll_minutes: int, skip_rosters: bool, no_publish: bool)
 
     report_dir = generate(date)
     caption = report_dir / "caption.txt"
-    if not caption.exists():
-        text = report_dir / "Best & Worst - Text.txt"
-        caption.write_text(text.read_text(encoding="utf-8") if text.exists() else
-                           f"BBL Best & Worst · {date}", encoding="utf-8")
+    caption.write_text(f"BBL Nightly Report · {date}\nTop 10 Performances and Top 10 Worst Performances attached.", encoding="utf-8")
     alt = report_dir / "alt-text.txt"
-    if not alt.exists():
-        alt.write_text(caption.read_text(encoding="utf-8"), encoding="utf-8")
+    alt.write_text("Two dark navy BBL nightly report cards: Top 10 performances and Top 10 worst performances, each with manager awards and mentions.", encoding="utf-8")
     if not no_publish:
         run([PYTHON, str(ROOT / "bbl/publish.py"), str(report_dir)])
     marker.parent.mkdir(parents=True, exist_ok=True)

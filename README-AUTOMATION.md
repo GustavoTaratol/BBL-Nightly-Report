@@ -85,6 +85,21 @@ committed or copied into public repositories.
 6. Run the offline demo and inspect every social export format.
 7. Enable the scheduled nightly job.
 
+## Local Mac setup
+
+For this Mac deployment:
+
+```text
+1. Double-click setup-mac.command
+2. Double-click login-cbs.command and sign into CBS in the visible browser
+3. Double-click run-scheduled.command to test one complete run
+4. Install the launchd plist after the test succeeds
+```
+
+The provided schedule is 11:30 PM every night in the Mac's local timezone.
+The plist must be copied to `~/Library/LaunchAgents/` after replacing
+`/REPLACE_WITH_REPO_PATH` with the absolute repository path.
+
 The scheduler writes `data/completed/YYYYMMDD.ok` only after report generation
 and publishing succeed. This prevents an hourly long-running process from
 posting the same night repeatedly. Use `--force` when deliberately rebuilding

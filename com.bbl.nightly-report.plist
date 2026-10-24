@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.bbl.nightly-report</string>
+  <key>Program</key><string>/REPLACE_WITH_REPO_PATH/run-scheduled.command</string>
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>23</integer><key>Minute</key><integer>30</integer></dict>
+  <key>StandardOutPath</key><string>/REPLACE_WITH_REPO_PATH/data/logs/launchd.out</string>
+  <key>StandardErrorPath</key><string>/REPLACE_WITH_REPO_PATH/data/logs/launchd.err</string>
+</dict>
+</plist>

@@ -17,8 +17,10 @@ import argparse
 import datetime as dt
 import os
 import re
+import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
@@ -63,11 +65,36 @@ def collect(base_url: str, profile: Path, out: Path, headed: bool) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
 
     with sync_playwright() as pw:
-        context = pw.chromium.launch_persistent_context(
-            str(profile),
-            headless=not headed,
-            viewport={"width": 1440, "height": 1000},
-        )
+        chrome_process = None
+        if headed:
+            # Launch a dedicated, ordinary Chrome window and attach through
+            # CDP. Google is more likely to reject Playwright's automated
+            # sign-in window than a normal Chrome session.
+            chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+            chrome_process = subprocess.Popen([
+                chrome,
+                "--remote-debugging-port=9222",
+                f"--user-data-dir={profile}",
+                base_url + "/standings/overall",
+            ])
+            browser = None
+            for _ in range(30):
+                try:
+                    browser = pw.chromium.connect_over_cdp("http://127.0.0.1:9222")
+                    break
+                except Exception:
+                    time.sleep(1)
+            if browser is None:
+                chrome_process.terminate()
+                raise RuntimeError("Could not attach to the dedicated Chrome login window")
+            context = browser.contexts[0]
+        else:
+            context = pw.chromium.launch_persistent_context(
+                str(profile),
+                headless=True,
+                channel="chrome",
+                viewport={"width": 1440, "height": 1000},
+            )
         page = context.pages[0] if context.pages else context.new_page()
         try:
             page.goto(base_url + "/standings/overall", wait_until="domcontentloaded", timeout=45_000)
@@ -80,6 +107,17 @@ def collect(base_url: str, profile: Path, out: Path, headed: bool) -> int:
                 name = clean(link.inner_text())
                 if match and name:
                     teams.setdefault(match.group(1), name)
+            if not teams and headed:
+                print("CBS login required in the browser window. Complete login, then press Enter here.", flush=True)
+                input()
+                page.goto(base_url + "/standings/overall", wait_until="domcontentloaded", timeout=45_000)
+                page.wait_for_timeout(1_000)
+                for link in page.locator('a[href*="/teams/"]').all():
+                    href = link.get_attribute("href") or ""
+                    match = TEAM_RE.search(href)
+                    name = clean(link.inner_text())
+                    if match and name:
+                        teams.setdefault(match.group(1), name)
             if not teams:
                 raise RuntimeError("No CBS teams found; the session may be logged out or the page layout changed")
 
