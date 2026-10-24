@@ -2,6 +2,7 @@
 """Build the two deterministic group-chat cards for one completed night."""
 from __future__ import annotations
 
+import base64
 import html
 import os
 import subprocess
@@ -11,6 +12,13 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
+LOGO_PATH = ROOT / "assets" / "bbl-bombastic-logo.jpg"
+
+
+def logo_data_uri():
+    if not LOGO_PATH.exists():
+        return ""
+    return "data:image/jpeg;base64," + base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
 
 
 def fpt(value):
@@ -87,9 +95,11 @@ def card_html(title, accent, subtitle, award_label, award_name, award_summary, r
         f'<div class="mention"><b>{i}</b><span>{html.escape(p["n"])} <i>{html.escape(p["t"])}</i> · {html.escape(p["owner"])}</span><strong>{fpt(p["fp"])}</strong></div>'
         for i, p in enumerate(mentions, len(rows) + 1)
     )
+    logo = logo_data_uri()
     return f'''<!doctype html><html><head><meta charset="utf-8"><style>
 *{{box-sizing:border-box}}body{{margin:0;background:#08111f;color:#e7edf7;font-family:Arial,sans-serif}}
-#card{{width:1080px;padding:42px 38px 30px;background:#0d1728}}
+#card{{width:1080px;padding:30px 38px 30px;background:#0d1728}}
+.brand{{display:flex;justify-content:center;margin-bottom:12px}}.brand img{{width:82px;height:82px;object-fit:cover;border-radius:18px;border:2px solid #21d7ff;box-shadow:0 0 18px rgba(33,215,255,.3)}}
 h1{{font-size:62px;line-height:.95;margin:0;color:#f4f7fb;letter-spacing:-2px;text-transform:uppercase}}h1 em{{color:{accent};font-style:normal}}
 .sub{{font-size:22px;letter-spacing:6px;color:#25c9ed;margin:16px 0 28px;text-align:center}}
 .award{{border:2px solid {accent};border-radius:16px;padding:20px 26px;margin-bottom:22px;background:#101e32}}
@@ -100,7 +110,7 @@ h1{{font-size:62px;line-height:.95;margin:0;color:#f4f7fb;letter-spacing:-2px;te
 .score{{color:{accent};font-size:42px;font-weight:800;text-align:center}}.score small,.stat small{{display:block;font-size:11px;color:#9caec3;letter-spacing:1px}}.stat{{background:#172a45;border-radius:7px;text-align:center;padding:8px 3px;font-size:21px;font-weight:700}}
 .section{{border:1px solid #1f4763;border-radius:14px;margin-top:24px;padding:15px}}.section h3{{color:#28d0ed;letter-spacing:3px;margin:0 0 10px;font-size:21px}}.mention{{display:grid;grid-template-columns:44px 1fr 70px;align-items:center;border-top:1px solid #203653;padding:9px 4px;color:#a8b7c9;font-size:17px}}.mention b{{color:#667991}}.mention i{{font-style:normal;color:#71839b}}.mention strong{{color:{accent};text-align:right;font-size:22px}}
 footer{{margin-top:22px;text-align:center;color:#687b93;font-size:13px;letter-spacing:1px}}
-</style></head><body><div id="card"><h1><em>{"TOP 10 WORST" if worst else "TOP 10"}</em> PERFORMANCE{"S" if not worst else "S"}</h1><div class="sub">BBL NIGHTLY REPORT · {html.escape(subtitle)}</div>
+</style></head><body><div id="card"><div class="brand">{f'<img src="{logo}" alt="BBL Bombastic Basketball League" />' if logo else ''}</div><h1><em>{"TOP 10 WORST" if worst else "TOP 10"}</em> PERFORMANCE{"S" if not worst else "S"}</h1><div class="sub">BBL NIGHTLY REPORT · {html.escape(subtitle)}</div>
 <div class="award"><div class="label">{html.escape(award_label)}</div><h2>{html.escape(award_name)}</h2><p>{html.escape(award_summary)}</p></div>
 <div class="cols"><span>#</span><span>PLAYER · MANAGER</span><span>BBL PTS</span><span>FG</span><span>REB</span><span>AST</span></div>{rows_html}
 <div class="section"><h3>{"DISHONORABLE" if worst else "HONORABLE"} MENTIONS</h3>{mention_html}</div><footer>BBL points · active lineup players count toward manager awards · reserves are tracked separately</footer></div></body></html>'''
