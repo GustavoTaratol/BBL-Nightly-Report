@@ -58,8 +58,12 @@ def load(box_path, roster_path):
             totals[p["owner"]] = totals.get(p["owner"], 0) + p["fp"]
             counts[p["owner"]] = counts.get(p["owner"], 0) + 1
     manager = max(totals, key=lambda n: (totals[n], counts[n])) if totals else "—"
-    stinker = min(totals, key=lambda n: (totals[n], -counts[n])) if totals else "—"
-    return best, worst, manager, stinker, totals, (ngames, ndone, nlive)
+    # Stinker is a manager award, so only a player actually started by a
+    # manager and appearing in the displayed Worst 10 can qualify.
+    stinker_candidates = [p for p in worst[:10] if p["owner"] != "Free agent" and p["status"] == "ACTIVE"]
+    stinker_player = stinker_candidates[0] if stinker_candidates else None
+    stinker = stinker_player["owner"] if stinker_player else None
+    return best, worst, manager, stinker, stinker_player, totals, (ngames, ndone, nlive)
 
 
 def card_html(title, accent, subtitle, award_label, award_name, award_summary, rows, mentions, worst=False):
@@ -100,7 +104,7 @@ def render(source, target):
 
 
 def build(box, roster, out, label):
-    best, worst, manager, stinker, totals, status = load(box, roster)
+    best, worst, manager, stinker, stinker_player, totals, status = load(box, roster)
     out = Path(out); out.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as temp:
         temp = Path(temp)
@@ -112,9 +116,14 @@ def build(box, roster, out, label):
         top_html.write_text(card_html("", "#ff972f", label, "Manager of the Night", manager,
                                       f"active lineup: {totals[manager]} BBL pts · {sum(1 for p in top10 if p['owner'] == manager)} in Top 10",
                                       top10, top_mentions), encoding="utf-8")
-        worst_html.write_text(card_html("", "#c879ff", label, "Stinker of the Night", stinker,
-                                        f"active lineup: {totals[stinker]} BBL pts · {sum(1 for p in worst10 if p['owner'] == stinker)} in Worst 10",
-                                        worst10, worst_mentions, True), encoding="utf-8")
+        if stinker_player:
+            stinker_name = stinker
+            stinker_summary = f"started {stinker_player['n']} · {stinker_player['fp']} BBL pts"
+        else:
+            stinker_name = "No Stinker for Tonight"
+            stinker_summary = "No manager started a player in the Worst 10."
+        worst_html.write_text(card_html("", "#c879ff", label, "Stinker of the Night", stinker_name,
+                                        stinker_summary, worst10, worst_mentions, True), encoding="utf-8")
         render(top_html, out / "Top 10 Performances.png")
         render(worst_html, out / "Top 10 Worst Performances.png")
     return manager, stinker

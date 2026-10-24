@@ -34,7 +34,7 @@ def collect(end_date: str, data: Path):
         if not box.exists() or not roster.exists():
             missing.append(key)
             continue
-        best, _worst, _manager, _stinker, totals, status = load(box, roster)
+        best, _worst, _manager, _stinker, _stinker_player, totals, status = load(box, roster)
         daily.append((key, best, totals, status))
         for owner, score in totals.items():
             managers[owner]["fp"] += score
