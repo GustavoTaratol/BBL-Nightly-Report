@@ -21,13 +21,14 @@ def load(box_path, roster_path):
     lines = Path(box_path).read_text(encoding="utf-8").strip().splitlines()
     header = lines[0].lstrip("#").split("|")
     ngames, ndone, nlive = map(int, header)
-    owner, positions = {}, {}
+    owner, positions, status = {}, {}, {}
     for line in Path(roster_path).read_text(encoding="utf-8").splitlines():
         fields = line.split("|")
         if len(fields) >= 3 and not fields[0].startswith("#"):
             positions[fields[0]] = fields[2]
         if len(fields) >= 4 and fields[3].startswith("TAKEN:"):
             owner[fields[0]] = fields[3][6:]
+            status[fields[0]] = fields[4] if len(fields) >= 5 else "ACTIVE"
     players = []
     for line in lines[1:]:
         f = line.split("|")
@@ -47,13 +48,13 @@ def load(box_path, roster_path):
         players.append({"n": name, "t": team, "m": mins, "pts": pts, "fgm": fgm, "fga": fga,
                         "reb": reb, "ast": ast, "to": to, "stl": stl, "blk": blk,
                         "base": base, "fp": base + slot_bonus, "slot": slot, "bonus": slot_bonus,
-                        "owner": owner.get(name, "Free agent")})
+                        "owner": owner.get(name, "Free agent"), "status": status.get(name, "FREE_AGENT")})
     best = sorted(players, key=lambda p: (-p["fp"], -p["base"], p["m"]))
     worst = sorted((p for p in players if p["m"] >= 20), key=lambda p: (p["fp"], p["base"], -p["m"]))
     totals = {}
     counts = {}
     for p in players:
-        if p["owner"] != "Free agent":
+        if p["owner"] != "Free agent" and p["status"] == "ACTIVE":
             totals[p["owner"]] = totals.get(p["owner"], 0) + p["fp"]
             counts[p["owner"]] = counts.get(p["owner"], 0) + 1
     manager = max(totals, key=lambda n: (totals[n], counts[n])) if totals else "—"
@@ -91,7 +92,7 @@ footer{{margin-top:22px;text-align:center;color:#687b93;font-size:13px;letter-sp
 </style></head><body><div id="card"><h1><em>{"TOP 10 WORST" if worst else "TOP 10"}</em> PERFORMANCE{"S" if not worst else "S"}</h1><div class="sub">BBL NIGHTLY REPORT · {html.escape(subtitle)}</div>
 <div class="award"><div class="label">{html.escape(award_label)}</div><h2>{html.escape(award_name)}</h2><p>{html.escape(award_summary)}</p></div>
 <div class="cols"><span>#</span><span>PLAYER · MANAGER</span><span>BBL PTS</span><span>FG</span><span>REB</span><span>AST</span></div>{rows_html}
-<div class="section"><h3>{"DISHONORABLE" if worst else "HONORABLE"} MENTIONS</h3>{mention_html}</div><footer>BBL points · best eligible slot · rostered players only for manager awards</footer></div></body></html>'''
+<div class="section"><h3>{"DISHONORABLE" if worst else "HONORABLE"} MENTIONS</h3>{mention_html}</div><footer>BBL points · active lineup players count toward manager awards · reserves are tracked separately</footer></div></body></html>'''
 
 
 def render(source, target):
@@ -109,10 +110,10 @@ def build(box, roster, out, label):
         top10 = best[:10]
         worst10 = worst[:10]
         top_html.write_text(card_html("", "#ff972f", label, "Manager of the Night", manager,
-                                      f"{sum(1 for p in top10 if p['owner'] == manager)} players in Top 10 · {sum(p['fp'] for p in top10 if p['owner'] == manager)} BBL pts",
+                                      f"active lineup: {totals[manager]} BBL pts · {sum(1 for p in top10 if p['owner'] == manager)} in Top 10",
                                       top10, top_mentions), encoding="utf-8")
         worst_html.write_text(card_html("", "#c879ff", label, "Stinker of the Night", stinker,
-                                        f"{sum(1 for p in worst10 if p['owner'] == stinker)} players in Worst 10 · {sum(p['fp'] for p in worst10 if p['owner'] == stinker)} BBL pts",
+                                        f"active lineup: {totals[stinker]} BBL pts · {sum(1 for p in worst10 if p['owner'] == stinker)} in Worst 10",
                                         worst10, worst_mentions, True), encoding="utf-8")
         render(top_html, out / "Top 10 Performances.png")
         render(worst_html, out / "Top 10 Worst Performances.png")

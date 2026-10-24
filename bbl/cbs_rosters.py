@@ -147,6 +147,9 @@ def collect(base_url: str, profile: Path, out: Path, headed: bool) -> int:
             for team_id, team_name in teams.items():
                 page.goto(base_url + "/teams/" + team_id, wait_until="domcontentloaded", timeout=45_000)
                 page.wait_for_timeout(300)
+                body = page.locator("body").inner_text()
+                active_text, _, reserve_text = body.partition("RESERVES")
+                reserve_text, _, injured_text = reserve_text.partition("INJURED")
                 for image in page.locator("img").all():
                     src = image.get_attribute("src") or ""
                     if f"/team_logo/{team_id}-" in src:
@@ -156,7 +159,8 @@ def collect(base_url: str, profile: Path, out: Path, headed: bool) -> int:
                     found = find_player(cells)
                     if found:
                         name, positions, nba_team = found
-                        owners.setdefault(name, (team_name, positions, nba_team))
+                        status = "ACTIVE" if name in active_text else "RESERVE" if name in reserve_text else "INJURED"
+                        owners.setdefault(name, (team_name, positions, nba_team, status))
 
             players = {}
             for position in ("G", "F", "C"):
@@ -172,7 +176,7 @@ def collect(base_url: str, profile: Path, out: Path, headed: bool) -> int:
 
             # Rostered players missing from projections still need their CBS
             # eligibility, for example injured or newly added players.
-            for name, (team_name, positions, nba_team) in owners.items():
+            for name, (team_name, positions, nba_team, _status) in owners.items():
                 players.setdefault(name, (nba_team, positions))
 
             if not players:
@@ -182,9 +186,11 @@ def collect(base_url: str, profile: Path, out: Path, headed: bool) -> int:
             lines = [f"# BBL rosters exported {now} from {base_url}"]
             for name, (nba_team, positions) in sorted(players.items(), key=lambda x: x[0].casefold()):
                 owner = "FA"
+                status = "FREE_AGENT"
                 if name in owners:
                     owner = "TAKEN:" + owners[name][0]
-                lines.append("|".join((name, nba_team, positions, owner)))
+                    status = owners[name][3]
+                lines.append("|".join((name, nba_team, positions, owner, status)))
             lines.extend(f"#LOGO|{team}|{url}" for team, url in sorted(logos.items()))
             text = "\n".join(lines) + "\n"
 
