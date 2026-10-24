@@ -67,7 +67,19 @@ def collect(base_url: str, profile: Path, out: Path, headed: bool) -> int:
 
     with sync_playwright() as pw:
         chrome_process = None
-        if headed:
+        keep_browser_open = False
+        if not headed:
+            try:
+                # Prefer the already-open dedicated Chrome session. This
+                # avoids profile locking and preserves the user's login.
+                browser = pw.chromium.connect_over_cdp("http://127.0.0.1:9222")
+                context = browser.contexts[0]
+                keep_browser_open = True
+            except Exception:
+                context = None
+        else:
+            context = None
+        if context is None and headed:
             # Launch a dedicated, ordinary Chrome window and attach through
             # CDP. Google is more likely to reject Playwright's automated
             # sign-in window than a normal Chrome session.
@@ -89,7 +101,7 @@ def collect(base_url: str, profile: Path, out: Path, headed: bool) -> int:
                 chrome_process.terminate()
                 raise RuntimeError("Could not attach to the dedicated Chrome login window")
             context = browser.contexts[0]
-        else:
+        elif context is None:
             context = pw.chromium.launch_persistent_context(
                 str(profile),
                 headless=True,
@@ -191,7 +203,8 @@ def collect(base_url: str, profile: Path, out: Path, headed: bool) -> int:
         except PlaywrightTimeoutError as exc:
             raise RuntimeError(f"CBS page timed out: {exc}") from exc
         finally:
-            context.close()
+            if not keep_browser_open:
+                context.close()
 
 
 def main() -> int:
