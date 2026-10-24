@@ -79,11 +79,10 @@ def card_html(title, accent, subtitle, award_label, award_name, award_summary, r
     row_parts = []
     for i, p in enumerate(rows, 1):
         def stat_cell(value, label, hot=False, cold=False):
-            marker = "🔥" if hot else "🧊" if cold else ""
             state = " hot" if hot else " cold" if cold else ""
-            return f'<div class="stat{state}"><span>{value}</span>{marker}<small>{label}</small></div>'
+            return f'<div class="stat{state}"><span>{value}</span><small>{label}</small></div>'
 
-        photo = ""
+        photo = '<div class="headshot placeholder"></div>'
         if p.get("photo"):
             photo = f'<img class="headshot" src="{html.escape(p["photo"], quote=True)}" alt="" />'
         hot = not worst
@@ -96,9 +95,8 @@ def card_html(title, accent, subtitle, award_label, award_name, award_summary, r
         ast_cold = cold and p["ast"] <= 1
         row_parts.append(
             f'<div class="row"><div class="rank"><span>{i:02}</span><small>RANK</small></div><div class="who">{photo}'
-            f'<b>{html.escape(p["n"])}</b>'
-            f'<span class="team">{html.escape(p["t"])}</span><small>{html.escape(p["owner"])}</small>'
-            f'<em class="meta">{html.escape(p["slot"] or "—")} slot · base {p["base"]} · {p["m"]} min</em></div>'
+            f'<div class="identity"><b>{html.escape(p["n"])}</b><span class="team">{html.escape(p["t"])}</span></div>'
+            f'<div class="details"><small>{html.escape(p["owner"])}</small><em>{html.escape(p["slot"] or "—")} SLOT · BASE {p["base"]} · {p["m"]} MIN</em></div></div>'
             f'<div class="score">{fpt(p["fp"])}<small>BBL PTS</small></div>'
             + stat_cell(f'{p["fgm"]}–{p["fga"]}', "FG", fg_hot, fg_cold)
             + stat_cell(p["reb"], "REB", reb_hot, reb_cold)
@@ -121,8 +119,8 @@ h1{{font-size:48px;line-height:.9;margin:0;color:#f4f7fb;letter-spacing:-2px;tex
 .label{{font:700 11px monospace;letter-spacing:3px;color:{accent};text-transform:uppercase}}.award h2{{font-size:30px;letter-spacing:1px;margin:4px 0 1px}}.award p{{font:13px monospace;margin:0;color:#a6c0d2}}
 .cols,.row{{display:grid;grid-template-columns:50px 1fr 128px 96px 82px 82px;gap:8px;align-items:center}}.cols{{padding:0 12px 4px;color:#4e7894;font:700 10px monospace;letter-spacing:2px;text-transform:uppercase}}
 .row{{background:rgba(14,31,53,.94);border:1px solid #1b3c5b;border-left:3px solid {accent}cc;border-radius:4px;padding:5px 10px;margin:4px 0;box-shadow:inset 0 0 18px rgba(30,170,230,.05)}}.row:hover{{border-color:{accent}}}.rank{{font:700 18px monospace;color:{accent};text-align:center;border-right:1px solid #244965;padding-right:7px}}.rank small{{display:block;font:7px monospace;color:#52758d;letter-spacing:1px;margin-top:2px}}
-.who b{{display:block;font-size:19px;letter-spacing:-.4px}}.headshot{{width:40px;height:40px;object-fit:cover;border-radius:50%;float:left;margin:0 9px 2px 0;background:#1d3150;border:1px solid {accent}99}}.who .team{{display:inline-block;color:#07111e;background:{accent};border-radius:2px;padding:1px 5px;font:700 10px monospace;margin-top:2px}}.who small{{display:block;color:#9eb8ca;font:12px monospace;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}.who .meta{{display:block;color:#52758d;font:9px monospace;margin-top:2px;letter-spacing:.3px}}
-.score{{color:{accent};font:800 31px monospace;text-align:center;text-shadow:0 0 15px {accent}55}}.score small,.stat small{{display:block;font:8px monospace;color:#7394aa;letter-spacing:1px}}.stat{{position:relative;background:#132b47;border:1px solid #1d4564;border-radius:3px;text-align:center;padding:5px 2px;font:700 16px monospace}}.stat.hot{{border-color:#ff6b2c;box-shadow:0 0 12px #ff5a2255;color:#fff1d8;background:linear-gradient(135deg,#1a2e45,#3b1e24)}}.stat.cold{{border-color:#6bdfff;box-shadow:0 0 12px #3ecaff55;color:#d9f8ff;background:linear-gradient(135deg,#152c49,#123e5b)}}.stat span{{vertical-align:middle}}.stat:not(.hot):not(.cold) span{{color:#e9f4fb}}.stat:not(.hot):not(.cold){{color:#fff}}
+.who{{display:grid;grid-template-columns:60px minmax(170px,1fr) 210px;gap:10px;align-items:center;min-width:0}}.who b{{display:block;font-size:20px;letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}.headshot{{width:58px;height:58px;object-fit:cover;border-radius:50%;background:#1d3150;border:1px solid {accent}99;box-shadow:0 0 12px {accent}33}}.headshot.placeholder{{background:linear-gradient(135deg,#162c47,#0a1627)}}.who .team{{display:inline-block;color:#07111e;background:{accent};border-radius:2px;padding:1px 5px;font:700 10px monospace;margin-top:3px}}.details{{min-width:0;border-left:1px solid #244965;padding-left:10px}}.details small{{display:block;color:#b4ccda;font:13px monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}.details em{{display:block;color:#52758d;font:9px monospace;font-style:normal;margin-top:4px;letter-spacing:.3px;white-space:nowrap}}
+.score{{color:{accent};font:800 31px monospace;text-align:center;text-shadow:0 0 15px {accent}55}}.score small,.stat small{{display:block;font:8px monospace;color:#7394aa;letter-spacing:1px}}.stat{{position:relative;background:#132b47;border:1px solid #1d4564;border-radius:3px;text-align:center;padding:5px 2px;font:700 16px monospace;overflow:hidden}}.stat.hot{{border-color:#ff6b2c;box-shadow:0 0 12px #ff5a2277,inset 0 -12px 20px #ff411633;color:#fff1d8;background:radial-gradient(ellipse at 70% 110%,#ff3d19 0,#8f241f 22%,transparent 55%),linear-gradient(135deg,#1a2e45,#3b1e24)}}.stat.hot:after{{content:"";position:absolute;inset:2px;border:1px solid #ff9a4d66;clip-path:polygon(0 82%,18% 48%,31% 72%,47% 24%,62% 65%,80% 34%,100% 70%,100% 100%,0 100%);pointer-events:none}}.stat.cold{{border-color:#6bdfff;box-shadow:0 0 12px #3ecaff77,inset 0 -12px 20px #21b8e633;color:#d9f8ff;background:radial-gradient(ellipse at 50% 110%,#2cc9f0 0,#155d87 25%,transparent 58%),linear-gradient(135deg,#152c49,#123e5b)}}.stat.cold:after{{content:"";position:absolute;inset:3px;border:1px solid #a8f4ff66;clip-path:polygon(50% 0,61% 32%,94% 18%,72% 50%,100% 72%,62% 68%,50% 100%,38% 68%,0 72%,28% 50%,6% 18%,39% 32%);pointer-events:none}}.stat span{{position:relative;z-index:1}}.stat small{{position:relative;z-index:1}}.stat:not(.hot):not(.cold) span{{color:#e9f4fb}}.stat:not(.hot):not(.cold){{color:#fff}}
 .section{{border:1px solid #1c6682;border-radius:4px;margin-top:13px;padding:9px;background:rgba(5,17,31,.72)}}.section h3{{color:#28d0ed;font:700 15px monospace;letter-spacing:3px;margin:0 0 6px}}.mention{{display:grid;grid-template-columns:38px 1fr 60px;align-items:center;border-top:1px solid #17354e;padding:5px 4px;color:#a8c0d1;font:12px monospace}}.mention b{{color:#5e839a}}.mention i{{font-style:normal;color:#66869a}}.mention strong{{color:{accent};text-align:right;font:700 17px monospace}}
 footer{{margin-top:13px;text-align:center;color:#52758d;font:9px monospace;letter-spacing:1px}}
 </style></head><body><div id="card"><div class="brand">{f'<img src="{logo}" alt="BBL Bombastic Basketball League" />' if logo else ''}</div><h1><em>{"TOP 10 WORST" if worst else "TOP 10"}</em> PERFORMANCE{"S" if not worst else "S"}</h1><div class="sub">BBL // NIGHTLY REPORT · {html.escape(subtitle)}</div>
