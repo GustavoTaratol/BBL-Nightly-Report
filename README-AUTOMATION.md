@@ -108,6 +108,20 @@ and publishing succeed. This prevents an hourly long-running process from
 posting the same night repeatedly. Use `--force` when deliberately rebuilding
 and republishing a date.
 
+## BBL Report Agent
+
+The local agent is the single entry point for the deployment:
+
+```text
+python3 bbl/agent.py nightly
+python3 bbl/agent.py weekly-draft
+python3 bbl/agent.py weekly
+python3 bbl/agent.py status
+```
+
+It writes a persistent activity log to `data/logs/agent.log`. The scheduled
+jobs should invoke these agent commands instead of duplicating report logic.
+
 After the Sunday nightly report completes, the scheduler builds a Monday–Sunday
 weekly analyst report. It includes Manager/Stinker of the Week, weekly top
 performers, qualified weekly strugglers, a narrative summary, and a
