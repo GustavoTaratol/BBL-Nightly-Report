@@ -78,17 +78,32 @@ def load(box_path, roster_path):
 def card_html(title, accent, subtitle, award_label, award_name, award_summary, rows, mentions, worst=False):
     row_parts = []
     for i, p in enumerate(rows, 1):
+        def stat_cell(value, label, hot=False, cold=False):
+            marker = "🔥" if hot else "🧊" if cold else ""
+            state = " hot" if hot else " cold" if cold else ""
+            return f'<div class="stat{state}"><span>{value}</span>{marker}<small>{label}</small></div>'
+
         photo = ""
         if p.get("photo"):
             photo = f'<img class="headshot" src="{html.escape(p["photo"], quote=True)}" alt="" />'
+        hot = not worst
+        cold = worst
+        fg_hot = hot and p["fgm"] >= 10
+        reb_hot = hot and p["reb"] >= 12
+        ast_hot = hot and p["ast"] >= 8
+        fg_cold = cold and (p["fgm"] <= 2 or p["fga"] >= 20 and p["fgm"] <= 5)
+        reb_cold = cold and p["reb"] <= 2
+        ast_cold = cold and p["ast"] <= 1
         row_parts.append(
-            f'<div class="row"><div class="rank">{i}</div><div class="who">{photo}'
+            f'<div class="row"><div class="rank"><span>{i:02}</span><small>RANK</small></div><div class="who">{photo}'
             f'<b>{html.escape(p["n"])}</b>'
             f'<span class="team">{html.escape(p["t"])}</span><small>{html.escape(p["owner"])}</small>'
             f'<em class="meta">{html.escape(p["slot"] or "—")} slot · base {p["base"]} · {p["m"]} min</em></div>'
             f'<div class="score">{fpt(p["fp"])}<small>BBL PTS</small></div>'
-            f'<div class="stat">{p["fgm"]}–{p["fga"]}<small>FG</small></div>'
-            f'<div class="stat">{p["reb"]}<small>REB</small></div><div class="stat">{p["ast"]}<small>AST</small></div></div>'
+            + stat_cell(f'{p["fgm"]}–{p["fga"]}', "FG", fg_hot, fg_cold)
+            + stat_cell(p["reb"], "REB", reb_hot, reb_cold)
+            + stat_cell(p["ast"], "AST", ast_hot, ast_cold)
+            + '</div>'
         )
     rows_html = "".join(row_parts)
     mention_html = "".join(
@@ -98,18 +113,18 @@ def card_html(title, accent, subtitle, award_label, award_name, award_summary, r
     logo = logo_data_uri()
     return f'''<!doctype html><html><head><meta charset="utf-8"><style>
 *{{box-sizing:border-box}}body{{margin:0;background:#050b16;color:#edf7ff;font-family:Arial,sans-serif}}
-#card{{width:1080px;padding:28px 38px 28px;background:#08111f;background-image:linear-gradient(rgba(26,215,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(26,215,255,.035) 1px,transparent 1px);background-size:32px 32px;border:1px solid #183b59}}
-.brand{{height:82px;display:flex;align-items:center;gap:16px;border-bottom:1px solid #1c4968;margin-bottom:20px}}.brand:after{{content:"BBL // LIVE DATA FEED";color:#527a96;font:700 13px monospace;letter-spacing:2px;margin-left:auto}}.brand img{{width:66px;height:66px;object-fit:cover;border-radius:14px;border:2px solid #21d7ff;box-shadow:0 0 20px rgba(33,215,255,.45)}}
-h1{{font-size:59px;line-height:.95;margin:0;color:#f4f7fb;letter-spacing:-2px;text-transform:uppercase}}h1 em{{color:{accent};font-style:normal;text-shadow:0 0 18px {accent}55}}
-.sub{{font:700 15px monospace;letter-spacing:5px;color:#25c9ed;margin:13px 0 24px;text-align:left;text-transform:uppercase}}
-.award{{position:relative;border:1px solid {accent};border-left:5px solid {accent};padding:17px 22px;margin-bottom:20px;background:linear-gradient(100deg,#10243b,#0c1728);box-shadow:0 0 22px {accent}22;overflow:hidden}}.award:after{{content:"";position:absolute;right:-60px;top:-70px;width:220px;height:220px;border:1px solid {accent}55;transform:rotate(45deg)}}
-.label{{font:700 14px monospace;letter-spacing:3px;color:{accent};text-transform:uppercase}}.award h2{{font-size:39px;letter-spacing:1px;margin:7px 0 2px}}.award p{{font:16px monospace;margin:0;color:#a6c0d2}}
-.cols,.row{{display:grid;grid-template-columns:54px 1fr 150px 100px 90px 90px;gap:12px;align-items:center}}.cols{{padding:0 14px 7px;color:#4e7894;font:700 12px monospace;letter-spacing:2px;text-transform:uppercase}}
-.row{{background:rgba(14,31,53,.92);border:1px solid #1b3c5b;border-left:3px solid {accent}66;border-radius:4px;padding:10px 14px;margin:7px 0;box-shadow:inset 0 0 18px rgba(30,170,230,.035)}}.row:hover{{border-color:{accent}}}.rank{{font:700 25px monospace;color:{accent};text-align:center}}
-.who b{{display:block;font-size:24px;letter-spacing:-.4px}}.headshot{{width:50px;height:50px;object-fit:cover;border-radius:50%;float:left;margin:0 12px 3px 0;background:#1d3150;border:1px solid {accent}99}}.who .team{{display:inline-block;color:#07111e;background:{accent};border-radius:2px;padding:2px 6px;font:700 12px monospace;margin-top:4px}}.who small{{display:block;color:#9eb8ca;font:15px monospace;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}.who .meta{{display:block;color:#52758d;font:11px monospace;margin-top:4px;letter-spacing:.3px}}
-.score{{color:{accent};font:800 40px monospace;text-align:center;text-shadow:0 0 15px {accent}55}}.score small,.stat small{{display:block;font:10px monospace;color:#7394aa;letter-spacing:1px}}.stat{{background:#132b47;border:1px solid #1d4564;border-radius:3px;text-align:center;padding:8px 3px;font:700 19px monospace}}
-.section{{border:1px solid #1c6682;border-radius:4px;margin-top:22px;padding:14px;background:rgba(5,17,31,.72)}}.section h3{{color:#28d0ed;font:700 18px monospace;letter-spacing:3px;margin:0 0 9px}}.mention{{display:grid;grid-template-columns:44px 1fr 70px;align-items:center;border-top:1px solid #17354e;padding:8px 4px;color:#a8c0d1;font:15px monospace}}.mention b{{color:#5e839a}}.mention i{{font-style:normal;color:#66869a}}.mention strong{{color:{accent};text-align:right;font:700 20px monospace}}
-footer{{margin-top:19px;text-align:center;color:#52758d;font:11px monospace;letter-spacing:1px}}
+#card{{width:1080px;min-height:1350px;padding:24px 34px 22px;background:#08111f;background-image:radial-gradient(circle at 50% 50%,transparent 0 112px,rgba(38,194,235,.055) 114px,transparent 117px),linear-gradient(90deg,transparent 49.6%,rgba(38,194,235,.045) 49.8%,transparent 50.2%),linear-gradient(45deg,transparent 49.7%,rgba(38,194,235,.035) 49.9%,transparent 50.1%);background-size:360px 360px;border:1px solid #183b59}}
+.brand{{height:88px;display:flex;align-items:center;gap:16px;border-bottom:1px solid #1c4968;margin-bottom:11px}}.brand:after{{content:"BBL // LIVE DATA FEED";color:#527a96;font:700 11px monospace;letter-spacing:2px;margin-left:auto}}.brand img{{width:78px;height:78px;object-fit:cover;border-radius:16px;border:2px solid #21d7ff;box-shadow:0 0 22px rgba(33,215,255,.55)}}
+h1{{font-size:48px;line-height:.9;margin:0;color:#f4f7fb;letter-spacing:-2px;text-transform:uppercase}}h1 em{{color:{accent};font-style:normal;text-shadow:0 0 18px {accent}55}}
+.sub{{font:700 12px monospace;letter-spacing:4px;color:#25c9ed;margin:9px 0 15px;text-align:left;text-transform:uppercase}}
+.award{{position:relative;border:1px solid {accent};border-left:4px solid {accent};padding:11px 17px;margin-bottom:13px;background:linear-gradient(100deg,#10243b,#0c1728);box-shadow:0 0 18px {accent}22;overflow:hidden}}.award:after{{content:"";position:absolute;right:-60px;top:-70px;width:220px;height:220px;border:1px solid {accent}55;transform:rotate(45deg)}}
+.label{{font:700 11px monospace;letter-spacing:3px;color:{accent};text-transform:uppercase}}.award h2{{font-size:30px;letter-spacing:1px;margin:4px 0 1px}}.award p{{font:13px monospace;margin:0;color:#a6c0d2}}
+.cols,.row{{display:grid;grid-template-columns:50px 1fr 128px 96px 82px 82px;gap:8px;align-items:center}}.cols{{padding:0 12px 4px;color:#4e7894;font:700 10px monospace;letter-spacing:2px;text-transform:uppercase}}
+.row{{background:rgba(14,31,53,.94);border:1px solid #1b3c5b;border-left:3px solid {accent}cc;border-radius:4px;padding:5px 10px;margin:4px 0;box-shadow:inset 0 0 18px rgba(30,170,230,.05)}}.row:hover{{border-color:{accent}}}.rank{{font:700 18px monospace;color:{accent};text-align:center;border-right:1px solid #244965;padding-right:7px}}.rank small{{display:block;font:7px monospace;color:#52758d;letter-spacing:1px;margin-top:2px}}
+.who b{{display:block;font-size:19px;letter-spacing:-.4px}}.headshot{{width:40px;height:40px;object-fit:cover;border-radius:50%;float:left;margin:0 9px 2px 0;background:#1d3150;border:1px solid {accent}99}}.who .team{{display:inline-block;color:#07111e;background:{accent};border-radius:2px;padding:1px 5px;font:700 10px monospace;margin-top:2px}}.who small{{display:block;color:#9eb8ca;font:12px monospace;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}.who .meta{{display:block;color:#52758d;font:9px monospace;margin-top:2px;letter-spacing:.3px}}
+.score{{color:{accent};font:800 31px monospace;text-align:center;text-shadow:0 0 15px {accent}55}}.score small,.stat small{{display:block;font:8px monospace;color:#7394aa;letter-spacing:1px}}.stat{{position:relative;background:#132b47;border:1px solid #1d4564;border-radius:3px;text-align:center;padding:5px 2px;font:700 16px monospace}}.stat.hot{{border-color:#ff6b2c;box-shadow:0 0 12px #ff5a2255;color:#fff1d8;background:linear-gradient(135deg,#1a2e45,#3b1e24)}}.stat.cold{{border-color:#6bdfff;box-shadow:0 0 12px #3ecaff55;color:#d9f8ff;background:linear-gradient(135deg,#152c49,#123e5b)}}.stat span{{vertical-align:middle}}.stat:not(.hot):not(.cold) span{{color:#e9f4fb}}.stat:not(.hot):not(.cold){{color:#fff}}
+.section{{border:1px solid #1c6682;border-radius:4px;margin-top:13px;padding:9px;background:rgba(5,17,31,.72)}}.section h3{{color:#28d0ed;font:700 15px monospace;letter-spacing:3px;margin:0 0 6px}}.mention{{display:grid;grid-template-columns:38px 1fr 60px;align-items:center;border-top:1px solid #17354e;padding:5px 4px;color:#a8c0d1;font:12px monospace}}.mention b{{color:#5e839a}}.mention i{{font-style:normal;color:#66869a}}.mention strong{{color:{accent};text-align:right;font:700 17px monospace}}
+footer{{margin-top:13px;text-align:center;color:#52758d;font:9px monospace;letter-spacing:1px}}
 </style></head><body><div id="card"><div class="brand">{f'<img src="{logo}" alt="BBL Bombastic Basketball League" />' if logo else ''}</div><h1><em>{"TOP 10 WORST" if worst else "TOP 10"}</em> PERFORMANCE{"S" if not worst else "S"}</h1><div class="sub">BBL // NIGHTLY REPORT · {html.escape(subtitle)}</div>
 <div class="award"><div class="label">{html.escape(award_label)}</div><h2>{html.escape(award_name)}</h2><p>{html.escape(award_summary)}</p></div>
 <div class="cols"><span>#</span><span>PLAYER · MANAGER</span><span>BBL PTS</span><span>FG</span><span>REB</span><span>AST</span></div>{rows_html}
