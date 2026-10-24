@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -59,6 +60,22 @@ def owner_label(item):
 
 def short_day(value: str) -> str:
     return dt.datetime.strptime(value, "%Y%m%d").strftime("%b %-d")
+
+
+def period_transactions(data: Path, start, end):
+    history = data / "transactions" / "history.jsonl"
+    if not history.exists():
+        return []
+    events = []
+    for line in history.read_text(encoding="utf-8").splitlines():
+        try:
+            event = json.loads(line)
+            day = dt.datetime.strptime(event["date"], "%Y%m%d").date()
+        except (ValueError, KeyError, json.JSONDecodeError):
+            continue
+        if start <= day <= end:
+            events.append(event)
+    return events
 
 
 def weekly_story(daily, players, managers, top, low, manager, stinker):
@@ -135,6 +152,7 @@ def weekly_story(daily, players, managers, top, low, manager, stinker):
 
 def build(end_date: str, data: Path, output: Path) -> int:
     start, end, daily, players, managers, missing = collect(end_date, data)
+    transactions = period_transactions(data, start, end)
     if missing:
         print("Weekly report waiting for: " + ", ".join(missing), file=sys.stderr)
         return 2
@@ -161,6 +179,22 @@ def build(end_date: str, data: Path, output: Path) -> int:
     )
     md = [f"# BBL Weekly Analyst Report · {label}", "", f"**Manager of the Week:** {manager} — {manager_score} BBL pts", f"**Stinker of the Week:** {stinker} — {stinker_score} BBL pts", "", narrative, ""]
     md += weekly_story(daily, players, managers, top, low, manager, stinker)
+    md += ["## Transactions & Waiver Wire", ""]
+    if transactions:
+        md.append("The following moves are inferred from roster snapshots. CBS transaction history is not available through the league API, so a pickup, drop, or trade should be treated as a candidate until confirmed by the league activity page.")
+        md.append("")
+        for event in transactions:
+            day = short_day(event["date"])
+            if event["type"] == "PICKUP_CANDIDATE":
+                line = f"{day}: {event['to_manager']} picked up {event['player']} (pickup/waiver candidate)."
+            elif event["type"] == "DROP_CANDIDATE":
+                line = f"{day}: {event['from_manager']} released {event['player']} (drop candidate)."
+            else:
+                line = f"{day}: {event['player']} moved from {event['from_manager']} to {event['to_manager']} (trade candidate)."
+            md.append(f"- {line}")
+    else:
+        md.append("No roster changes were captured for this period. Future nightly snapshots will allow the report to identify pickup, drop, and trade candidates automatically.")
+    md.append("")
     md += ["## Weekly Top Performers", ""]
     for i, (name, item) in enumerate(top, 1):
         md.append(f"{i}. {name} — {owner_label(item)} · {item['games']} games · {item['fp']} BBL pts · peak {item['peak']}")

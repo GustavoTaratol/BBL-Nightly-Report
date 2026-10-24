@@ -40,6 +40,8 @@ def snapshot_rosters(date: str) -> None:
     snapshot = DATA / "rosters" / "snapshots" / f"{date}.txt"
     snapshot.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(ROSTERS, snapshot)
+    run([PYTHON, str(ROOT / "bbl/transactions.py"), str(DATA / "rosters" / "snapshots"),
+         str(DATA / "transactions" / "history.jsonl")])
 
 
 def fetch_status(date: str) -> tuple[int, int, int]:

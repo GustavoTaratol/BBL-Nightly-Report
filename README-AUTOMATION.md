@@ -69,6 +69,7 @@ data/
     alt-text.txt
   reports/week-YYYYMMDD-YYYYMMDD/
     Weekly Analyst Report.md
+  transactions/history.jsonl
   browser/cbs-profile/
   logs/
 ```
@@ -109,9 +110,12 @@ and republishing a date.
 
 After the Sunday nightly report completes, the scheduler builds a Monday–Sunday
 weekly analyst report. It includes Manager/Stinker of the Week, weekly top
-performers, qualified weekly strugglers, and a narrative summary. The roster
-snapshot used for each night is archived so trades and waivers can be assigned
-to the correct manager.
+performers, qualified weekly strugglers, a narrative summary, and a
+Transactions & Waiver Wire section. Each roster snapshot is compared with the
+previous snapshot and changes are recorded in `transactions/history.jsonl`.
+Those changes are marked as inferred pickup, drop, or trade candidates because
+CBS does not provide a public transaction API; the report never presents an
+inferred trade as confirmed fact.
 
 If the CBS session expires, the collector should stop with an actionable error
 and preserve the last known roster snapshot. It must never silently replace a
@@ -124,6 +128,8 @@ good snapshot with an empty roster.
 - PNG rendering: existing; requires Playwright and Chromium.
 - CBS roster collection: `bbl/cbs_rosters.py` now provides the persistent
   Playwright collector; it still needs a live logged-in CBS test.
+- Transaction tracking: `bbl/transactions.py` rebuilds inferred pickup, drop,
+  and trade candidates from dated roster snapshots.
 - Scheduling, persistence, social delivery, and TrueNAS packaging: pending.
 
 ## Handoff rule
