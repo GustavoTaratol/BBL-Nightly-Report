@@ -16,9 +16,10 @@ from pathlib import Path
 
 
 def post_discord(url: str, report_dir: Path, caption: str) -> None:
-    images = [
-        report_dir / "Top 10 - Mobile Friendly.png",
-        report_dir / "Best & Worst.png",
+    weekly = report_dir / "Weekly Analyst Report.png"
+    images = [weekly] if weekly.exists() else [
+        report_dir / "Top 10 Performances.png",
+        report_dir / "Top 10 Worst Performances.png",
     ]
     boundary = "----BBLReportBoundary"
     parts = []
@@ -50,9 +51,13 @@ def post_generic(url: str, report_dir: Path, caption: str) -> None:
     payload = json.dumps({
         "date": report_dir.name,
         "caption": caption,
-        "text": (report_dir / "Best & Worst - Text.txt").read_text(encoding="utf-8")
-        if (report_dir / "Best & Worst - Text.txt").exists() else "",
-        "report_url": str(report_dir / "Best & Worst.html"),
+        "text": (report_dir / "Weekly Analyst Report.md").read_text(encoding="utf-8")
+        if (report_dir / "Weekly Analyst Report.md").exists()
+        else ((report_dir / "Best & Worst - Text.txt").read_text(encoding="utf-8")
+              if (report_dir / "Best & Worst - Text.txt").exists() else ""),
+        "report_url": str(report_dir / "Weekly Analyst Report.md")
+        if (report_dir / "Weekly Analyst Report.md").exists()
+        else str(report_dir / "Best & Worst.html"),
         "image_paths": [str(p) for p in report_dir.glob("*.png")],
     }).encode()
     request = urllib.request.Request(url, data=payload,

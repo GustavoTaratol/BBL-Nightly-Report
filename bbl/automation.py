@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -33,6 +34,12 @@ def refresh_rosters() -> None:
         raise RuntimeError("BBL_CBS_BASE_URL is required for unattended operation")
     run([PYTHON, str(ROOT / "bbl/cbs_rosters.py"), "--base-url", base_url,
          "--profile", str(DATA / "browser/cbs-profile"), "--out", str(ROSTERS)])
+
+
+def snapshot_rosters(date: str) -> None:
+    snapshot = DATA / "rosters" / "snapshots" / f"{date}.txt"
+    snapshot.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(ROSTERS, snapshot)
 
 
 def fetch_status(date: str) -> tuple[int, int, int]:
@@ -69,6 +76,7 @@ def run_once(date: str, poll_minutes: int, skip_rosters: bool, no_publish: bool)
                 raise
     if not ROSTERS.exists():
         raise RuntimeError(f"No roster snapshot exists at {ROSTERS}")
+    snapshot_rosters(date)
 
     while True:
         games, finished, live = fetch_status(date)
@@ -90,6 +98,13 @@ def run_once(date: str, poll_minutes: int, skip_rosters: bool, no_publish: bool)
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text(dt.datetime.now(dt.timezone.utc).isoformat() + "\n", encoding="utf-8")
     print(f"Completed report: {report_dir}")
+    if dt.datetime.strptime(date, "%Y%m%d").weekday() == 6:
+        start = dt.datetime.strptime(date, "%Y%m%d").date() - dt.timedelta(days=6)
+        weekly_dir = DATA / "reports" / f"week-{start:%Y%m%d}-{date}"
+        weekly = run([PYTHON, str(ROOT / "bbl/weekly_report.py"), "--end-date", date,
+                      "--data-dir", str(DATA), "--output-dir", str(weekly_dir)], check=False)
+        if weekly.returncode == 0 and not no_publish:
+            run([PYTHON, str(ROOT / "bbl/publish.py"), str(weekly_dir)])
 
 
 def main() -> int:

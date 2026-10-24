@@ -56,7 +56,7 @@ The deployment should mount a persistent data directory with this structure:
 ```text
 data/
   rosters/current.txt
-  rosters/snapshots/YYYYMMDD-HHMMSS.txt
+  rosters/snapshots/YYYYMMDD.txt
   boxscores/YYYYMMDD.txt
   reports/YYYYMMDD/
     Best & Worst.html
@@ -67,6 +67,9 @@ data/
     Best & Worst - Text.txt
     caption.txt
     alt-text.txt
+  reports/week-YYYYMMDD-YYYYMMDD/
+    Weekly Analyst Report.md
+    Weekly Analyst Report.png
   browser/cbs-profile/
   logs/
 ```
@@ -104,6 +107,12 @@ The scheduler writes `data/completed/YYYYMMDD.ok` only after report generation
 and publishing succeed. This prevents an hourly long-running process from
 posting the same night repeatedly. Use `--force` when deliberately rebuilding
 and republishing a date.
+
+After the Sunday nightly report completes, the scheduler builds a Monday–Sunday
+weekly analyst report. It includes Manager/Stinker of the Week, weekly top
+performers, qualified weekly strugglers, and a narrative summary. The roster
+snapshot used for each night is archived so trades and waivers can be assigned
+to the correct manager.
 
 If the CBS session expires, the collector should stop with an actionable error
 and preserve the last known roster snapshot. It must never silently replace a
