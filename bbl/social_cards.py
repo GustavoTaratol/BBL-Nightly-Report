@@ -104,9 +104,19 @@ def card_html(title, accent, subtitle, award_label, award_name, award_summary, r
         ast_cold = cold and p["ast"] <= 1
         tov_cold = cold and p["to"] >= 4
         pts_cold = cold and p["pts"] <= 5
-        category_count = sum(value >= 10 for value in (p["pts"], p["reb"], p["ast"], p["stl"], p["blk"]))
-        badge = "TRIPLE-DOUBLE" if category_count >= 3 else "DOUBLE-DOUBLE" if category_count >= 2 else ""
-        badge_html = f'<span class="badge">{badge}</span>' if badge else ""
+        badges = []
+        if not worst:
+            category_count = sum(value >= 10 for value in (p["pts"], p["reb"], p["ast"], p["stl"], p["blk"]))
+            if category_count >= 3:
+                badges.append("TRIPLE-DOUBLE")
+            elif category_count >= 2:
+                badges.append("DOUBLE-DOUBLE")
+        else:
+            if p["m"] >= 30 and p["fp"] <= 5:
+                badges.append("CARDIO KING")
+            if p["fga"] >= 8 and p["fgm"] / p["fga"] <= 0.30:
+                badges.append("BRICK CITY")
+        badge_html = "".join(f'<span class="badge">{badge}</span>' for badge in badges)
         row_parts.append(
             f'<div class="row"><div class="rank"><span>{i:02}</span><small>RANK</small></div><div class="who">{photo}'
             f'<div class="identity"><b>{html.escape(p["n"])}</b>{badge_html}<span class="team">{html.escape(p["t"])}</span></div>'
