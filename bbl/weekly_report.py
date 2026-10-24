@@ -61,6 +61,54 @@ def short_day(value: str) -> str:
     return dt.datetime.strptime(value, "%Y%m%d").strftime("%b %-d")
 
 
+def weekly_story(daily, players, managers, top, low, manager, stinker):
+    """Write the text-first, CBS-style narrative that sits above the lists."""
+    leader_days = sorted(
+        ((key, totals.get(manager, 0)) for key, _best, totals, _status in daily),
+        key=lambda item: item[1], reverse=True,
+    )
+    leader_top = [name for name, item in top if owner_label(item) == manager][:3]
+    top_player, top_item = top[0]
+    peak_player, peak_item = max(players.items(), key=lambda item: (item[1]["peak"], item[1]["fp"]))
+    low_player, low_item = low[0] if low else (None, None)
+    leader_day = leader_days[0]
+    leader_line = f"{short_day(leader_day[0])} ({leader_day[1]} BBL pts)" if leader_day[1] else "the available scoring nights"
+    leader_roster = ", ".join(leader_top) if leader_top else "a broad group of contributors"
+    low_line = (
+        f"The weekly struggler list was led by {low_player}, who averaged "
+        f"{low_item['fp'] / low_item['games']:.1f} BBL points across {low_item['games']} games."
+        if low_player else "The weekly struggler list had no player who met the minimum qualification."
+    )
+    return [
+        "## Around the League",
+        "",
+        f"### {manager} Sets the Pace",
+        "",
+        f"{manager} finished on top of the manager leaderboard with {managers[manager]['fp']} BBL points. "
+        f"The strongest night came on {short_day(leader_day[0])}, when the roster produced {leader_day[1]} points. "
+        f"That total was built around {leader_roster}, giving SOGGY the most consistent presence near the top of the player rankings.",
+        "",
+        f"### {top_player} Leads the Player Race",
+        "",
+        f"{top_player} was the week's most productive player, finishing with {top_item['fp']} BBL points over "
+        f"{top_item['games']} games and a peak of {top_item['peak']}. The biggest single-night explosion came from "
+        f"{peak_player}, who posted {peak_item['peak']} BBL points on {short_day(max(daily, key=lambda x: max((p['fp'] for p in x[1]), default=-10**9))[0])}.",
+        "",
+        f"### The Bottom Falls Out",
+        "",
+        f"{low_line} {stinker} finished last among the managers in the current sample with "
+        f"{managers[stinker]['fp']} BBL points. That is the kind of week where one cold stretch can dominate the conversation, "
+        "especially when the league's best lineups are stacking multiple strong performances on the same night.",
+        "",
+        "### What Stood Out",
+        "",
+        f"The week had a clear contrast: {manager} led the manager totals while {top_player} led the individual player race. "
+        f"The strongest available scoring night was {leader_line}; the list below shows where the rest of the league gained ground, "
+        "and where the lineups left points on the table.",
+        "",
+    ]
+
+
 def build(end_date: str, data: Path, output: Path) -> int:
     start, end, daily, players, managers, missing = collect(end_date, data)
     if missing:
@@ -87,7 +135,9 @@ def build(end_date: str, data: Path, output: Path) -> int:
         f"Stinker of the Week award. The week's biggest single-night performance came on {short_day(best_night[0])}, "
         f"while the lowest individual outing came on {short_day(worst_night[0])}."
     )
-    md = [f"# BBL Weekly Analyst Report · {label}", "", f"**Manager of the Week:** {manager} — {manager_score} BBL pts", f"**Stinker of the Week:** {stinker} — {stinker_score} BBL pts", "", narrative, "", "## Weekly Top Performers", "", "| # | Player | Manager | Games | BBL pts | Peak night |", "|---:|---|---|---:|---:|---:|"]
+    md = [f"# BBL Weekly Analyst Report · {label}", "", f"**Manager of the Week:** {manager} — {manager_score} BBL pts", f"**Stinker of the Week:** {stinker} — {stinker_score} BBL pts", "", narrative, ""]
+    md += weekly_story(daily, players, managers, top, low, manager, stinker)
+    md += ["## Weekly Top Performers", "", "| # | Player | Manager | Games | BBL pts | Peak night |", "|---:|---|---|---:|---:|---:|"]
     for i, (name, item) in enumerate(top, 1):
         md.append(f"| {i} | {name} | {owner_label(item)} | {item['games']} | {item['fp']} | {item['peak']} |")
     md += ["", "## Weekly Strugglers", "", "Players shown here played at least 2 games and 40 minutes.", "", "| # | Player | Manager | Games | Avg BBL pts | Total |", "|---:|---|---|---:|---:|---:|"]
