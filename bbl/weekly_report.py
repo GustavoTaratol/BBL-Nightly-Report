@@ -62,49 +62,73 @@ def short_day(value: str) -> str:
 
 
 def weekly_story(daily, players, managers, top, low, manager, stinker):
-    """Write the text-first, CBS-style narrative that sits above the lists."""
+    """Write a text-first, sports-column narrative from the available box scores."""
+    appearances = [(key, p) for key, best, _totals, _status in daily for p in best]
     leader_days = sorted(
         ((key, totals.get(manager, 0)) for key, _best, totals, _status in daily),
         key=lambda item: item[1], reverse=True,
     )
-    leader_top = [name for name, item in top if owner_label(item) == manager][:3]
     top_player, top_item = top[0]
-    peak_player, peak_item = max(players.items(), key=lambda item: (item[1]["peak"], item[1]["fp"]))
+    peak_day, peak_player_data = max(appearances, key=lambda item: item[1]["fp"])
+    peak_player = peak_player_data["n"]
     low_player, low_item = low[0] if low else (None, None)
     leader_day = leader_days[0]
-    leader_line = f"{short_day(leader_day[0])} ({leader_day[1]} BBL pts)" if leader_day[1] else "the available scoring nights"
-    leader_roster = ", ".join(leader_top) if leader_top else "a broad group of contributors"
+    leader_roster = [name for name, item in top if owner_label(item) == manager][:3]
+    leader_roster_text = ", ".join(leader_roster) if leader_roster else "a broad group of contributors"
+    category_leaders = {
+        "scoring": max(appearances, key=lambda item: item[1]["pts"])[1],
+        "rebounding": max(appearances, key=lambda item: item[1]["reb"])[1],
+        "playmaking": max(appearances, key=lambda item: item[1]["ast"])[1],
+        "defense": max(appearances, key=lambda item: item[1]["stl"] + item[1]["blk"])[1],
+    }
+    scoring = category_leaders["scoring"]
+    rebounding = category_leaders["rebounding"]
+    playmaking = category_leaders["playmaking"]
+    defense = category_leaders["defense"]
     low_line = (
-        f"The weekly struggler list was led by {low_player}, who averaged "
+        f"{low_player} was the lowest qualified weekly scorer, averaging "
         f"{low_item['fp'] / low_item['games']:.1f} BBL points across {low_item['games']} games."
-        if low_player else "The weekly struggler list had no player who met the minimum qualification."
+        if low_player else "No player met the minimum qualification for the weekly struggler list."
     )
+    def statline(p):
+        def noun(value, singular, plural=None):
+            return f"{value} {singular if value == 1 else (plural or singular + 's')}"
+        return ", ".join([
+            noun(p['pts'], 'point'), noun(p['reb'], 'rebound'), noun(p['ast'], 'assist'),
+            noun(p['stl'], 'steal'), noun(p['blk'], 'block'),
+        ])
     return [
         "## Around the League",
         "",
-        f"### {manager} Sets the Pace",
+        f"### {manager} Takes Control",
         "",
-        f"{manager} finished on top of the manager leaderboard with {managers[manager]['fp']} BBL points. "
-        f"The strongest night came on {short_day(leader_day[0])}, when the roster produced {leader_day[1]} points. "
-        f"That total was built around {leader_roster}, giving SOGGY the most consistent presence near the top of the player rankings.",
+        f"{manager} finished atop the manager leaderboard with {managers[manager]['fp']} BBL points. "
+        f"The decisive burst came on {short_day(leader_day[0])}, when the roster produced {leader_day[1]} points. "
+        f"{leader_roster_text} supplied the biggest pieces of the week-long push, giving {manager} both volume and top-end production.",
         "",
-        f"### {top_player} Leads the Player Race",
+        f"### {top_player} Wins the Player Race",
         "",
-        f"{top_player} was the week's most productive player, finishing with {top_item['fp']} BBL points over "
-        f"{top_item['games']} games and a peak of {top_item['peak']}. The biggest single-night explosion came from "
-        f"{peak_player}, who posted {peak_item['peak']} BBL points on {short_day(max(daily, key=lambda x: max((p['fp'] for p in x[1]), default=-10**9))[0])}.",
+        f"{top_player} was the week's most productive player, totaling {top_item['fp']} BBL points over "
+        f"{top_item['games']} games with a peak of {top_item['peak']}. The night's highest individual score belonged to "
+        f"{peak_player}, whose {peak_player_data['fp']} BBL-point performance on {short_day(peak_day)} came with "
+        f"{statline(peak_player_data)}.",
         "",
-        f"### The Bottom Falls Out",
+        "### The Box Score Tells the Story",
         "",
-        f"{low_line} {stinker} finished last among the managers in the current sample with "
-        f"{managers[stinker]['fp']} BBL points. That is the kind of week where one cold stretch can dominate the conversation, "
-        "especially when the league's best lineups are stacking multiple strong performances on the same night.",
+        f"The scoring crown for a single night went to {scoring['n']} with {scoring['pts']} points. "
+        f"{rebounding['n']} owned the glass with {rebounding['reb']} rebounds, while {playmaking['n']} created the most offense with "
+        f"{playmaking['ast']} assists. On the defensive end, {defense['n']} led the available field with "
+        f"{defense['stl']} steals and {defense['blk']} blocks.",
         "",
-        "### What Stood Out",
+        "### A Rough Week at the Bottom",
         "",
-        f"The week had a clear contrast: {manager} led the manager totals while {top_player} led the individual player race. "
-        f"The strongest available scoring night was {leader_line}; the list below shows where the rest of the league gained ground, "
-        "and where the lineups left points on the table.",
+        f"{low_line} {stinker} finished last among the managers in the current sample with {managers[stinker]['fp']} BBL points. "
+        "That is the kind of week where a few cold player lines can pull an entire roster out of the race, especially when the top managers are stacking 60- and 70-point performances.",
+        "",
+        "### The Week in One Sentence",
+        "",
+        f"{manager} won the manager race, {top_player} led the weekly player standings, and the league's highest ceiling came from {peak_player} on {short_day(peak_day)}. "
+        "The rankings below show who turned that production into a full week of value—and who never found a rhythm.",
         "",
     ]
 
