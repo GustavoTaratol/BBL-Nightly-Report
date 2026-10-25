@@ -23,7 +23,7 @@ def days_for(end_date: str):
 def collect(end_date: str, data: Path):
     start, end, days = days_for(end_date)
     players = defaultdict(lambda: {"fp": 0, "minutes": 0, "games": 0, "owners": defaultdict(int), "peak": -10**9})
-    managers = defaultdict(lambda: {"fp": 0, "players": 0, "days": 0})
+    managers = defaultdict(lambda: {"fp": 0, "owned_fp": 0, "missed_fp": 0, "players": 0, "days": 0, "best_day": 0, "worst_day": 10**9})
     daily = []
     missing = []
     for day in days:
@@ -40,6 +40,8 @@ def collect(end_date: str, data: Path):
         for owner, score in totals.items():
             managers[owner]["fp"] += score
             managers[owner]["days"] += 1
+            managers[owner]["best_day"] = max(managers[owner]["best_day"], score)
+            managers[owner]["worst_day"] = min(managers[owner]["worst_day"], score)
         for player in best:
             item = players[player["n"]]
             item["fp"] += player["fp"]
@@ -49,7 +51,28 @@ def collect(end_date: str, data: Path):
             if player["owner"] != "Free agent":
                 item["owners"][player["owner"]] += player["fp"]
                 managers[player["owner"]]["players"] += 1
+                managers[player["owner"]]["owned_fp"] += player["fp"]
+                if player["status"] != "ACTIVE":
+                    managers[player["owner"]]["missed_fp"] += player["fp"]
     return start, end, daily, players, managers, missing
+
+
+def manager_rankings(managers):
+    """Return transparent power and coaching rankings from weekly snapshots."""
+    power = []
+    coaching = []
+    for name, item in managers.items():
+        days = max(item["days"], 1)
+        average = item["fp"] / days
+        # Power rewards total output first, then peak, then repeatability.
+        power_score = item["fp"] + item["best_day"] * 0.5 + average * 0.25
+        power.append((power_score, name, item, average))
+        owned = item["owned_fp"]
+        efficiency = (item["fp"] / owned * 100) if owned else 0
+        coaching.append((efficiency, -item["missed_fp"], item["fp"], name, item))
+    power.sort(key=lambda row: (-row[0], -row[2]["fp"], row[1]))
+    coaching.sort(reverse=True)
+    return power, coaching
 
 
 def owner_label(item):
@@ -182,6 +205,8 @@ def build(end_date: str, data: Path, output: Path) -> int:
     low = sorted(qualified, key=lambda kv: (kv[1]["fp"] / kv[1]["games"], kv[1]["fp"], -kv[1]["minutes"]))[:10]
     manager = max(managers, key=lambda n: (managers[n]["fp"], managers[n]["days"]))
     stinker = min(managers, key=lambda n: (managers[n]["fp"], -managers[n]["days"]))
+    power_rankings, coach_rankings = manager_rankings(managers)
+    toughest = power_rankings[1] if len(power_rankings) > 1 else None
     best_night = max(daily, key=lambda x: max((p["fp"] for p in x[1]), default=-10**9))
     worst_night = min(daily, key=lambda x: min((p["fp"] for p in x[1]), default=10**9))
     label = f"{start.strftime('%b %-d')}–{end.strftime('%b %-d, %Y')}"
@@ -196,6 +221,18 @@ def build(end_date: str, data: Path, output: Path) -> int:
     )
     md = [f"# BBL Weekly Analyst Report · {label}", "", f"**Manager of the Week:** {manager} — {manager_score} BBL pts", f"**Stinker of the Week:** {stinker} — {stinker_score} BBL pts", "", narrative, ""]
     md += weekly_story(daily, players, managers, top, low, manager, stinker)
+    md += ["## Power Rankings", "", "Power score blends total weekly BBL points, best-night ceiling, and average nightly output.", ""]
+    for i, (_score, name, item, average) in enumerate(power_rankings, 1):
+        md.append(f"{i}. {name} — {item['fp']} total BBL pts · {average:.1f} nightly average · peak {item['best_day']}")
+    md += ["", "## Coach Rankings", "", "Coach ranking is based on lineup efficiency: active lineup points divided by total owned-player points captured in the snapshots. Lower missed production is the tiebreaker.", ""]
+    for i, (efficiency, _missed, active, name, item) in enumerate(coach_rankings, 1):
+        md.append(f"{i}. {name} — {efficiency:.1f}% lineup efficiency · {active} active BBL pts · {item['missed_fp']} reserve/missed BBL pts")
+    md += ["", "## Toughest Opponent", ""]
+    if toughest:
+        md.append(f"{toughest[1]} was the toughest opponent by weekly output, posting {toughest[2]['fp']} BBL points and a {toughest[3]:.1f}-point nightly average. This is a strength-of-opponent proxy because CBS matchup results are not available in the captured data.")
+    else:
+        md.append("No opponent comparison was available for this period.")
+    md.append("")
     md += ["## Transactions & Waiver Wire", ""]
     if transactions:
         md.append("The following moves are inferred from roster snapshots. CBS transaction history is not available through the league API, so a pickup, drop, or trade should be treated as a candidate until confirmed by the league activity page.")
